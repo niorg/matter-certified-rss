@@ -128,10 +128,10 @@ def parse_products(html):
             }
 
         extended_description = (
-            f"{description}\n\n"
-            f"Firmware Version: {details['firmware_version']}\n"
-            f"Hardware Version: {details['hardware_version']}\n"
-            f"Transport Interface: {details['transport_interface']}\n"
+            f"{description}<br><br>"
+            f"Firmware Version: {details['firmware_version']}<br>"
+            f"Hardware Version: {details['hardware_version']}<br>"
+            f"Transport Interface: {details['transport_interface']}<br>"
             f"Specification Version: {details['specification_version']}"
         )
 
