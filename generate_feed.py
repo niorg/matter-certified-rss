@@ -66,12 +66,17 @@ def fetch_certification_details(url):
         if specification_version_tag:
             specification_version = specification_version_tag.find_next().text.strip()
 
+        # Fetch additional images
+        image_tags = soup.find_all("img")
+        images = [img["src"] for img in image_tags if img.has_attr("src")]
+
         details = {
             "cert_date": cert_date,
             "firmware_version": firmware_version,
             "hardware_version": hardware_version,
             "transport_interface": transport_interface,
-            "specification_version": specification_version
+            "specification_version": specification_version,
+            "images": images
         }
         return details
 
@@ -82,7 +87,8 @@ def fetch_certification_details(url):
             "firmware_version": "N/A",
             "hardware_version": "N/A",
             "transport_interface": "N/A",
-            "specification_version": "N/A"
+            "specification_version": "N/A",
+            "images": []
         }
 
 
@@ -117,11 +123,12 @@ def parse_products(html):
                 "firmware_version": "N/A",
                 "hardware_version": "N/A",
                 "transport_interface": "N/A",
-                "specification_version": "N/A"
+                "specification_version": "N/A",
+                "images": []
             }
 
         extended_description = (
-            f"{description}\n"
+            f"{description}\n\n"
             f"Firmware Version: {details['firmware_version']}\n"
             f"Hardware Version: {details['hardware_version']}\n"
             f"Transport Interface: {details['transport_interface']}\n"
@@ -133,7 +140,8 @@ def parse_products(html):
             "link": url if url else "N/A",
             "image": image_url,
             "description": extended_description,
-            "pubDate": details['cert_date']
+            "pubDate": details['cert_date'],
+            "extra_images": details['images']
         })
     return products
 
@@ -157,8 +165,14 @@ def build_rss(products):
         ET.SubElement(item, "link").text = prod["link"]
         ET.SubElement(item, "description").text = prod["description"]
         ET.SubElement(item, "pubDate").text = prod["pubDate"]
+        
+        # Include main image
         if prod["image"]:
             ET.SubElement(item, "enclosure", url=prod["image"], type="image/jpeg")
+
+        # Include extra images
+        for extra_image in prod["extra_images"]:
+            ET.SubElement(item, "enclosure", url=extra_image, type="image/jpeg")
 
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
 
