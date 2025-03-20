@@ -117,6 +117,8 @@ def parse_products(html):
         # Fetch certification date and additional details
         if url and "csa_product" in url:
             details = fetch_certification_details(url)
+            if not image_url and details['images']:
+                image_url = details['images'][0]  # Use first additional image if main image is not available
         else:
             details = {
                 "cert_date": "N/A",
@@ -140,8 +142,7 @@ def parse_products(html):
             "link": url if url else "N/A",
             "image": image_url,
             "description": extended_description,
-            "pubDate": details['cert_date'],
-            "extra_images": details['images']
+            "pubDate": details['cert_date']
         })
     return products
 
@@ -166,13 +167,9 @@ def build_rss(products):
         ET.SubElement(item, "description").text = prod["description"]
         ET.SubElement(item, "pubDate").text = prod["pubDate"]
         
-        # Include main image
+        # Include only one image as enclosure
         if prod["image"]:
             ET.SubElement(item, "enclosure", url=prod["image"], type="image/jpeg")
-
-        # Include extra images
-        for extra_image in prod["extra_images"]:
-            ET.SubElement(item, "enclosure", url=extra_image, type="image/jpeg")
 
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
 
