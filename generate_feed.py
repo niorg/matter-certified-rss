@@ -134,7 +134,8 @@ def parse_products(html):
             f"Firmware Version: {details['firmware_version']}<br>"
             f"Hardware Version: {details['hardware_version']}<br>"
             f"Transport Interface: {details['transport_interface']}<br>"
-            f"Specification Version: {details['specification_version']}"
+            f"Specification Version: {details['specification_version']}<br>"
+            f"<img>{image_url}</img>"
         )
 
         products.append({
