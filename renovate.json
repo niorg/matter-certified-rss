@@ -1,6 +1,29 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ]
-}
+   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+   "extends": [
+     "config:best-practices",
+     "helpers:pinGitHubActionDigestsToSemver",
+     ":separateMultipleMajorReleases",
+     ":separateMultipleMinorReleases",
+     ":separatePatchReleases",
+     ":pinDependencies",
+     ":maintainLockFilesWeekly",
+     ":automergeDigest",
+     "docker:pinDigests",
+     "docker:enableMajor"
+   ],
+   "prConcurrentLimit": 5,
+   "packageRules": [
+     {
+       "matchDatasources": [
+         "docker"
+       ],
+       "matchUpdateTypes": [
+         "digest"
+       ],
+       "schedule": [
+         "every weekend on the 1st through 7th day of the month"
+       ]
+     }
+   ]
+ }
