@@ -149,6 +149,7 @@ def parse_products(html):
 
 def build_rss(products):
     """ Build an RSS XML string from the list of product dictionaries. """
+    ET.register_namespace("media", "http://search.yahoo.com/mrss/")
     rss = ET.Element("rss", version="2.0")
     channel = ET.SubElement(rss, "channel")
     ch_title = ET.SubElement(channel, "title")
@@ -168,9 +169,15 @@ def build_rss(products):
         ET.SubElement(item, "pubDate").text = prod["pubDate"]
         ET.SubElement(item, "guid").text = prod["certificate_id"]
         
-        # Include only one image as enclosure
+        # Use Media RSS <media:content> for the image
         if prod["image"]:
-            ET.SubElement(item, "enclosure", url=prod["image"], type="image/jpeg")
+            ET.SubElement(item, "{http://search.yahoo.com/mrss/}content", {
+                "url": prod["image"],
+                "medium": "image",
+                "type": "image/jpeg",
+                "width": "150",
+                "height": "150"
+            })
 
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
 
