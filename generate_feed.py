@@ -30,20 +30,21 @@ def fetch_certification_details(url):
         html = fetch_page_content(url)
         soup = BeautifulSoup(html, "html.parser")
 
-        # Locate and extract the detailed description part
+        # Extract the specific paragraph(s) for product description
+        product_description_section = soup.find_all("p")
         description = ""
-        paragraphs = soup.find_all("p")
-        if paragraphs:
-            for p in paragraphs:
+        started = False
+        if product_description_section:
+            for p in product_description_section:
                 text = p.get_text(strip=True)
-                if "By " in text:  # Looking for lines like "By Guangdong A-OK Technology Grand Development Co., Ltd."
-                    next_p = p.find_next_sibling("p")
-                    while next_p and "Product Details" not in next_p.get_text(strip=True):
-                        description += next_p.get_text(strip=True) + " "
-                        next_p = next_p.find_next_sibling("p")
-                    break  # Stop once we've processed the desired section
+                # Start adding text after the company name and stop right before 'Product Details'
+                if text.startswith("By "):
+                    started = True
                 
-        # Handle and ensure the description ends precisely without trailing product details text
+                if started:
+                    if "Product Details" in text:
+                        break
+                    description += text + " "
 
         # Find the certification date
         cert_date = "N/A"
