@@ -9,7 +9,7 @@ QUERY_PARAMS = "p_keywords&p_type%5B0%5D=17&p_type%5B1%5D=14&p_type%5B2%5D=1053&
 NUM_PAGES = 3
 
 def construct_url(page_number):
-    """ Construct the URL for the given page. """
+    """Construct the URL for the given page."""
     if page_number == 1:
         return f"{BASE_URL}?{QUERY_PARAMS}"
     else:
@@ -30,14 +30,16 @@ def fetch_certification_details(url):
         html = fetch_page_content(url)
         soup = BeautifulSoup(html, "html.parser")
 
-        # Fetch the full description up to 'Product Details'
-        description_content = soup.find("div", class_="entry-content")
-        full_description = ""
-        if description_content:
-            for element in description_content.children:
-                if element.name == "h2" and "Product Details" in element.text:
+        # Extract the specific text description above 'Product Details'
+        description = ""
+        main_content = soup.find_all("p")
+        
+        if main_content:
+            for p in main_content:
+                text = p.get_text(strip=True)
+                if "Product Details" in text:
                     break
-                full_description += str(element)
+                description += text + " "
 
         # Find the certification date
         cert_date = "N/A"
@@ -83,7 +85,7 @@ def fetch_certification_details(url):
         images = [img["src"] for img in image_tags if img.has_attr("src")]
 
         details = {
-            "full_description": full_description,
+            "full_description": description.strip(),
             "cert_date": cert_date,
             "certificate_id": certificate_id,
             "firmware_version": firmware_version,
@@ -108,7 +110,7 @@ def fetch_certification_details(url):
         }
 
 def parse_products(html):
-    """ Parse product items from the HTML. """
+    """Parse product items from the HTML."""
     soup = BeautifulSoup(html, "html.parser")
     products = []
     product_tiles = soup.find_all("article")
@@ -153,7 +155,7 @@ def parse_products(html):
     return products
 
 def build_rss(products):
-    """ Build an RSS XML string from the list of product dictionaries. """
+    """Build an RSS XML string from the list of product dictionaries."""
     ET.register_namespace("media", "http://search.yahoo.com/mrss/")
     rss = ET.Element("rss", version="2.0")
     channel = ET.SubElement(rss, "channel")
@@ -173,7 +175,7 @@ def build_rss(products):
         ET.SubElement(item, "description").text = prod["description"]
         ET.SubElement(item, "pubDate").text = prod["pubDate"]
         ET.SubElement(item, "guid").text = prod["certificate_id"]
-        
+
         # Use Media RSS <media:content> for the image
         if prod["image"]:
             ET.SubElement(item, "{http://search.yahoo.com/mrss/}content", {
