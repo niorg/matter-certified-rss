@@ -8,14 +8,12 @@ BASE_URL = "https://csa-iot.org/csa-iot_products/"
 QUERY_PARAMS = "p_keywords&p_type%5B0%5D=17&p_type%5B1%5D=14&p_type%5B2%5D=1053&p_program_type%5B0%5D=1049&p_certificate&p_family&p_firmware_ver"
 NUM_PAGES = 3
 
-
 def construct_url(page_number):
     """ Construct the URL for the given page. """
     if page_number == 1:
         return f"{BASE_URL}?{QUERY_PARAMS}"
     else:
         return f"{BASE_URL}page/{page_number}/?{QUERY_PARAMS}"
-
 
 def fetch_page_content(url):
     """Fetch page content using requests."""
@@ -26,12 +24,15 @@ def fetch_page_content(url):
     response.raise_for_status()
     return response.text
 
-
 def fetch_certification_details(url):
     """Fetch the certification date and additional details from the product page."""
     try:
         html = fetch_page_content(url)
         soup = BeautifulSoup(html, "html.parser")
+
+        # Fetch the full description
+        description_tag = soup.find("div", class_="entry-content") # Adjust this selector based on actual full description location
+        full_description = description_tag.get_text().strip() if description_tag else "No description available"
 
         # Find the certification date
         cert_date = "N/A"
@@ -43,6 +44,12 @@ def fetch_certification_details(url):
                     hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
                 )
                 cert_date = cert_date.strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+        # Fetch certificate ID
+        certificate_id = "N/A"
+        cert_id_tag = soup.find(string="Certificate ID")
+        if cert_id_tag:
+            certificate_id = cert_id_tag.find_next().text.strip()
 
         # Fetch additional details
         firmware_version = "N/A"
@@ -66,12 +73,14 @@ def fetch_certification_details(url):
         if specification_version_tag:
             specification_version = specification_version_tag.find_next().text.strip()
 
-        # Fetch additional images
+        # Fetch images
         image_tags = soup.find_all("img")
         images = [img["src"] for img in image_tags if img.has_attr("src")]
 
         details = {
+            "full_description": full_description,
             "cert_date": cert_date,
+            "certificate_id": certificate_id,
             "firmware_version": firmware_version,
             "hardware_version": hardware_version,
             "transport_interface": transport_interface,
@@ -83,14 +92,15 @@ def fetch_certification_details(url):
     except Exception as e:
         print(f"Error fetching details for {url}: {e}")
         return {
+            "full_description": "Error fetching description",
             "cert_date": "N/A",
+            "certificate_id": "N/A",
             "firmware_version": "N/A",
             "hardware_version": "N/A",
             "transport_interface": "N/A",
             "specification_version": "N/A",
             "images": []
         }
-
 
 def parse_products(html):
     """ Parse product items from the HTML. """
@@ -108,7 +118,6 @@ def parse_products(html):
 
         image_tag = tile.find("img")
         image_url = image_tag["src"] if image_tag and image_tag.has_attr("src") else None
-        description = tile.get_text(" ", strip=True)
 
         # Exclude 'End Products' items
         if 'End Products' in title:
@@ -119,34 +128,24 @@ def parse_products(html):
             details = fetch_certification_details(url)
             if not image_url and details['images']:
                 image_url = details['images'][0]  # Use first additional image if main image is not available
-        else:
-            details = {
-                "cert_date": "N/A",
-                "firmware_version": "N/A",
-                "hardware_version": "N/A",
-                "transport_interface": "N/A",
-                "specification_version": "N/A",
-                "images": []
-            }
 
-        extended_description = (
-            f"{description}<br><br>"
-            f"Firmware Version: {details['firmware_version']}<br>"
-            f"Hardware Version: {details['hardware_version']}<br>"
-            f"Transport Interface: {details['transport_interface']}<br>"
-            f"Specification Version: {details['specification_version']}<br>"
-            f"<img>{image_url}</img>"
-        )
+            extended_description = (
+                f"{details['full_description']}<br><br>"
+                f"Firmware Version: {details['firmware_version']}<br>"
+                f"Hardware Version: {details['hardware_version']}<br>"
+                f"Transport Interface: {details['transport_interface']}<br>"
+                f"Specification Version: {details['specification_version']}<br>"
+            )
 
-        products.append({
-            "title": title,
-            "link": url if url else "N/A",
-            "image": image_url,
-            "description": extended_description,
-            "pubDate": details['cert_date']
-        })
+            products.append({
+                "title": title,
+                "link": url if url else "N/A",
+                "image": image_url,
+                "description": extended_description,
+                "pubDate": details['cert_date'],
+                "certificate_id": details['certificate_id']
+            })
     return products
-
 
 def build_rss(products):
     """ Build an RSS XML string from the list of product dictionaries. """
@@ -167,13 +166,13 @@ def build_rss(products):
         ET.SubElement(item, "link").text = prod["link"]
         ET.SubElement(item, "description").text = prod["description"]
         ET.SubElement(item, "pubDate").text = prod["pubDate"]
+        ET.SubElement(item, "guid").text = prod["certificate_id"]
         
         # Include only one image as enclosure
         if prod["image"]:
             ET.SubElement(item, "enclosure", url=prod["image"], type="image/jpeg")
 
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
-
 
 def main():
     all_products = []
@@ -197,7 +196,6 @@ def main():
     with open("feed.xml", "wb") as f:
         f.write(rss_feed)
     print("RSS feed created successfully: feed.xml")
-
 
 if __name__ == "__main__":
     main()
