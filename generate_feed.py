@@ -37,12 +37,12 @@ def fetch_certification_details(url):
         if product_description_section:
             for p in product_description_section:
                 text = p.get_text(strip=True)
-                # Start adding text after the company name and stop right before 'Product Details'
+                # Start adding text after the company name and stop right before 'View All Products'
                 if text.startswith("By "):
                     started = True
                 
                 if started:
-                    if "Product Details" in text:
+                    if "View All Products" in text:
                         break
                     description += text + " "
 
