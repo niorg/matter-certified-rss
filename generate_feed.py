@@ -30,9 +30,14 @@ def fetch_certification_details(url):
         html = fetch_page_content(url)
         soup = BeautifulSoup(html, "html.parser")
 
-        # Fetch the full description
-        description_tag = soup.find("div", class_="entry-content") # Adjust this selector based on actual full description location
-        full_description = description_tag.get_text().strip() if description_tag else "No description available"
+        # Fetch the full description up to 'Product Details'
+        description_content = soup.find("div", class_="entry-content")
+        full_description = ""
+        if description_content:
+            for element in description_content.children:
+                if element.name == "h2" and "Product Details" in element.text:
+                    break
+                full_description += str(element)
 
         # Find the certification date
         cert_date = "N/A"
